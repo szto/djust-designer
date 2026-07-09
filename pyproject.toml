@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zdesign"
+version = "0.0.1"
+description = "Visual design collaboration layer for djust (Django) — point at the page, edit the source."
+requires-python = ">=3.12"
+dependencies = ["Django>=5.0"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-django>=4.9",
+    "ruff>=0.6",
+    "ty>=0.0.18",
+]
+
+[tool.setuptools.packages.find]
+include = ["zdesign*"]
+
+[tool.setuptools.package-data]
+zdesign = ["static/zdesign/*", "templates/**/*"]
+
+# --- ruff ----------------------------------------------------------------
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = [".venv", ".zdesign", "demo/demo_project/wsgi.py"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",
+    "F",
+    "I",
+    "UP",
+    "B",
+    "SIM",
+    "TID",
+    "RUF",
+]
+ignore = [
+    "E501",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["B", "SIM"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# --- ty ------------------------------------------------------------------
+[tool.ty.analysis]
+replace-imports-with-any = ["django.**"]
