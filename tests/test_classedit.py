@@ -27,3 +27,22 @@ def test_preserves_other_lines_and_attrs():
 def test_raises_when_line_out_of_range():
     with pytest.raises(IndexError):
         apply_class_change("<div>x</div>\n", 5, "p-4")
+
+
+def test_raises_when_no_opening_tag():
+    with pytest.raises(ValueError):
+        apply_class_change("just text here\n", 1, "p-4")
+
+
+def test_ignores_class_in_html_comment_on_same_line():
+    src = '<!-- class="old" --><div class="real">x</div>\n'
+    out = apply_class_change(src, 1, "new")
+    assert out == '<!-- class="old" --><div class="new">x</div>\n'
+
+
+def test_ignores_class_word_in_text_content():
+    src = '<p>See class="foo" for details</p>\n'
+    out = apply_class_change(src, 1, "big")
+    # No existing class= inside the <p> tag itself — a new class= is inserted
+    # right after the tag name, leaving the text content untouched.
+    assert out == '<p class="big">See class="foo" for details</p>\n'
