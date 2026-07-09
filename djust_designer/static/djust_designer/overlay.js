@@ -157,8 +157,11 @@
       .panel textarea.cls { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-family:ui-monospace,monospace; font-size:12px; line-height:1.55; min-height:64px; max-height:280px; resize:vertical; overflow-y:auto; white-space:pre-wrap; word-break:break-word; }
       .panel textarea.cls:focus { outline:2px solid #6366f1; outline-offset:-1px; }
       .panel .suggest { position:fixed; background:#fff; border:1px solid #cbd5e1; border-radius:6px; box-shadow:0 6px 16px rgba(15,23,42,.15); max-height:240px; overflow-y:auto; z-index:2147483647; }
-      .panel .sug { padding:6px 10px; font-family:ui-monospace,monospace; font-size:12px; cursor:pointer; }
+      .panel .sug { padding:6px 10px; font-family:ui-monospace,monospace; font-size:12px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:8px; }
       .panel .sug.active, .panel .sug:hover { background:#eef2ff; color:#4338ca; }
+      .panel .sug .doc { font-family:system-ui, sans-serif; font-size:11px; color:#6366f1; text-decoration:none; opacity:0; padding:2px 6px; border-radius:4px; }
+      .panel .sug:hover .doc, .panel .sug.active .doc { opacity:1; }
+      .panel .sug .doc:hover { background:#6366f1; color:#fff; opacity:1; }
       .panel .src { font-family:ui-monospace,monospace; font-size:11px; color:#334155; margin-top:8px; word-break:break-all; max-height:60px; overflow-y:auto; }
       .panel .actions { display:flex; gap:8px; margin-top:10px; }
       .panel button { flex:1; padding:8px; border:0; border-radius:6px; background:#6366f1; color:#fff; cursor:pointer; font-size:13px; }
@@ -247,6 +250,83 @@
     return { start, end, word: val.slice(start, end) };
   };
 
+  // Map a Tailwind utility to its tailwindcss.com/docs slug.
+  // Longer/more specific patterns come first.
+  const DOC_PATTERNS = [
+    [/^(gap(-x|-y)?)-/, "gap"],
+    [/^space-(x|y)-/, "space"],
+    [/^p([xytrbl])?-/, "padding"],
+    [/^m([xytrbl])?-|^(mx|my|m)-auto$/, "margin"],
+    [/^max-w-/, "max-width"],
+    [/^min-w-/, "min-width"],
+    [/^w-/, "width"],
+    [/^max-h-/, "max-height"],
+    [/^min-h-/, "min-height"],
+    [/^h-/, "height"],
+    [/^text-(xs|sm|base|lg|xl|2xl|3xl|4xl|5xl|6xl|7xl|8xl|9xl)$/, "font-size"],
+    [/^text-(left|center|right|justify)$/, "text-align"],
+    [/^text-/, "text-color"],
+    [/^font-(thin|extralight|light|normal|medium|semibold|bold|extrabold|black)$/, "font-weight"],
+    [/^font-/, "font-family"],
+    [/^italic$|^not-italic$/, "font-style"],
+    [/^underline$|^line-through$|^no-underline$|^overline$/, "text-decoration-line"],
+    [/^uppercase$|^lowercase$|^capitalize$|^normal-case$/, "text-transform"],
+    [/^truncate$/, "text-overflow"],
+    [/^tracking-/, "letter-spacing"],
+    [/^leading-/, "line-height"],
+    [/^whitespace-/, "whitespace"],
+    [/^break-/, "word-break"],
+    [/^bg-/, "background-color"],
+    [/^border-(t|r|b|l|x|y)?-?(0|2|4|8)?$/, "border-width"],
+    [/^border-/, "border-color"],
+    [/^rounded/, "border-radius"],
+    [/^shadow/, "box-shadow"],
+    [/^ring-offset-/, "ring-offset-width"],
+    [/^ring/, "ring-width"],
+    [/^opacity-/, "opacity"],
+    [/^backdrop-blur/, "backdrop-blur"],
+    [/^blur/, "blur"],
+    [/^cursor-/, "cursor"],
+    [/^select-/, "user-select"],
+    [/^pointer-events-/, "pointer-events"],
+    [/^overflow-/, "overflow"],
+    [/^flex-(row|col)/, "flex-direction"],
+    [/^flex-(wrap|nowrap)/, "flex-wrap"],
+    [/^flex-(1|auto|initial|none)$/, "flex"],
+    [/^inline-flex$|^flex$/, "display"],
+    [/^grid-cols-/, "grid-template-columns"],
+    [/^grid-rows-/, "grid-template-rows"],
+    [/^col-(span|start|end)-/, "grid-column"],
+    [/^row-(span|start|end)-/, "grid-row"],
+    [/^items-/, "align-items"],
+    [/^justify-/, "justify-content"],
+    [/^content-/, "align-content"],
+    [/^self-/, "align-self"],
+    [/^(block|inline|inline-block|grid|inline-grid|table|flow-root|hidden|contents)$/, "display"],
+    [/^(static|relative|absolute|fixed|sticky)$/, "position"],
+    [/^(top|right|bottom|left|inset|inset-x|inset-y)-/, "top-right-bottom-left"],
+    [/^z-/, "z-index"],
+    [/^transition/, "transition-property"],
+    [/^duration-/, "transition-duration"],
+    [/^ease-/, "transition-timing-function"],
+    [/^delay-/, "transition-delay"],
+    [/^transform(-none)?$/, "transform"],
+    [/^-?translate-/, "translate"],
+    [/^-?rotate-/, "rotate"],
+    [/^scale-/, "scale"],
+    [/^aspect-/, "aspect-ratio"],
+    [/^container$/, "container"],
+    [/^antialiased$|^subpixel-antialiased$/, "font-smoothing"],
+  ];
+  const docPage = (cls) => {
+    for (const [re, page] of DOC_PATTERNS) if (re.test(cls)) return page;
+    return null;
+  };
+  const docUrl = (cls) => {
+    const page = docPage(cls);
+    return page ? `https://tailwindcss.com/docs/${page}` : null;
+  };
+
   const renderSuggest = () => {
     const { word } = currentWord();
     if (!word || word.length < 1) { suggestBox.hidden = true; return; }
@@ -254,7 +334,13 @@
     if (!currentMatches.length) { suggestBox.hidden = true; return; }
     activeSuggestIndex = 0;
     suggestBox.innerHTML = currentMatches
-      .map((c, i) => `<div class="sug${i === 0 ? " active" : ""}" data-i="${i}">${c}</div>`)
+      .map((c, i) => {
+        const url = docUrl(c);
+        const doc = url
+          ? `<a class="doc" href="${url}" target="_blank" rel="noopener" title="Tailwind docs">docs ↗</a>`
+          : "";
+        return `<div class="sug${i === 0 ? " active" : ""}" data-i="${i}"><span>${c}</span>${doc}</div>`;
+      })
       .join("");
     suggestBox.hidden = false;
     // Position the dropdown in viewport coordinates so it can never be
@@ -325,6 +411,9 @@
     }
   });
   suggestBox.addEventListener("mousedown", (e) => {
+    // Let clicks on the .doc anchor open Tailwind docs in a new tab
+    // instead of inserting the suggestion.
+    if (e.target.closest(".doc")) return;
     const el = e.target.closest(".sug");
     if (!el) return;
     e.preventDefault();
