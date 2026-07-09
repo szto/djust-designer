@@ -27,16 +27,18 @@ def _template_roots() -> list[str]:
     return roots or [str(getattr(settings, "BASE_DIR", "."))]
 
 
-def _guard():
+def _guard(request):
     if not getattr(settings, "DEBUG", False):
         return JsonResponse({"error": "disabled"}, status=403)
+    if request.META.get("REMOTE_ADDR") not in ("127.0.0.1", "::1"):
+        return JsonResponse({"error": "loopback only"}, status=403)
     return None
 
 
 @csrf_exempt
 @require_POST
 def resolve(request):
-    if (g := _guard()) is not None:
+    if (g := _guard(request)) is not None:
         return g
     try:
         data = json.loads(request.body or b"{}")
@@ -51,7 +53,7 @@ def resolve(request):
 @csrf_exempt
 @require_POST
 def edit_class(request):
-    if (g := _guard()) is not None:
+    if (g := _guard(request)) is not None:
         return g
     try:
         data = json.loads(request.body or b"{}")
@@ -61,6 +63,8 @@ def edit_class(request):
     if not entry:
         return JsonResponse({"error": "unknown id"}, status=404)
     new_class = data.get("class", "")
+    if any(c in new_class for c in "\"<>'"):
+        return HttpResponseBadRequest("invalid class value")
     path = resolve_within(entry["file"], _template_roots())
     Backups(str(settings.BASE_DIR)).snapshot(path)
     with open(path, encoding="utf-8") as f:
@@ -74,7 +78,7 @@ def edit_class(request):
 @csrf_exempt
 @require_POST
 def undo(request):
-    if (g := _guard()) is not None:
+    if (g := _guard(request)) is not None:
         return g
     restored = Backups(str(settings.BASE_DIR)).undo_last()
     return JsonResponse({"restored": restored})

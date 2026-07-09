@@ -72,3 +72,36 @@ def test_edit_class_rewrites_source_and_supports_undo(tmp_path, settings):
     r = c.post("/__zdesign__/undo", content_type="application/json")
     assert r.status_code == 200
     assert src_file.read_text() == '<div class="p-2">x</div>\n'
+
+
+@pytest.mark.django_db
+def test_resolve_rejects_non_loopback():
+    registry.reset()
+    registry.update({"zd1": {"file": "x", "line": 1, "col": 1, "tag": "div"}})
+    c = Client(REMOTE_ADDR="10.0.0.1")
+    r = c.post(
+        "/__zdesign__/resolve",
+        data=json.dumps({"zd_id": "zd1"}),
+        content_type="application/json",
+    )
+    assert r.status_code == 403
+
+
+@pytest.mark.django_db
+def test_edit_class_rejects_html_injection(tmp_path, settings):
+    settings.BASE_DIR = tmp_path
+    src_file = tmp_path / "home.html"
+    src_file.write_text('<div class="p-2">x</div>\n')
+    registry.reset()
+    registry.update({"zd1": {"file": str(src_file), "line": 1, "col": 1, "tag": "div"}})
+    settings.TEMPLATES = [{**settings.TEMPLATES[0], "DIRS": [str(tmp_path)]}]
+
+    c = Client()
+    r = c.post(
+        "/__zdesign__/edit/class",
+        data=json.dumps({"zd_id": "zd1", "class": 'p-4"><script>x</script>'}),
+        content_type="application/json",
+    )
+    assert r.status_code == 400
+    # File must be untouched.
+    assert src_file.read_text() == '<div class="p-2">x</div>\n'
