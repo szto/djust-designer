@@ -153,9 +153,16 @@
       .panel header .close { cursor:pointer; opacity:.7; font-size:16px; line-height:1; padding:0 4px; }
       .panel .body { padding:12px; position:relative; flex:1 1 auto; min-height:0; }
       .panel label { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#64748b; margin-bottom:4px; }
-      .panel .cls-wrap { position:relative; }
-      .panel textarea.cls { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-family:ui-monospace,monospace; font-size:12px; line-height:1.55; min-height:64px; max-height:280px; resize:vertical; overflow-y:auto; white-space:pre-wrap; word-break:break-word; }
-      .panel textarea.cls:focus { outline:2px solid #6366f1; outline-offset:-1px; }
+      .panel .chip-input { display:flex; flex-wrap:wrap; gap:4px; padding:6px 8px; border:1px solid #cbd5e1; border-radius:6px; min-height:44px; align-items:center; cursor:text; position:relative; background:#fff; }
+      .panel .chip-input:focus-within { border-color:#6366f1; box-shadow:0 0 0 2px #eef2ff; }
+      .panel .chip { display:inline-flex; align-items:center; gap:4px; background:#eef2ff; color:#4338ca; padding:3px 4px 3px 8px; border-radius:5px; font-family:ui-monospace,monospace; font-size:12px; line-height:1.2; }
+      .panel .chip .doc { color:#6366f1; text-decoration:none; font-size:10px; padding:0 3px; opacity:.55; border-radius:3px; }
+      .panel .chip .doc:hover { opacity:1; background:#6366f1; color:#fff; }
+      .panel .chip .x { background:transparent; border:0; color:#4338ca; cursor:pointer; padding:0 4px; font-size:14px; line-height:1; border-radius:3px; }
+      .panel .chip .x:hover { background:#6366f1; color:#fff; }
+      .panel .chip.dupe { background:#fee2e2; color:#b91c1c; animation:zdShake .25s ease-out; }
+      @keyframes zdShake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-2px)} 75%{transform:translateX(2px)} }
+      .panel input.cls { flex:1 1 100px; min-width:80px; border:0; outline:none; padding:4px; font-family:ui-monospace,monospace; font-size:12px; background:transparent; }
       .panel .suggest { position:fixed; background:#fff; border:1px solid #cbd5e1; border-radius:6px; box-shadow:0 6px 16px rgba(15,23,42,.15); max-height:240px; overflow-y:auto; z-index:2147483647; }
       .panel .sug { padding:6px 10px; font-family:ui-monospace,monospace; font-size:12px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:8px; }
       .panel .sug.active, .panel .sug:hover { background:#eef2ff; color:#4338ca; }
@@ -178,14 +185,13 @@
         <span class="close">×</span>
       </header>
       <div class="body">
-        <label>class <em style="font-family:ui-monospace,monospace;text-transform:none;letter-spacing:0;opacity:.5;font-style:normal">— Enter to apply · Shift+Enter for newline</em></label>
-        <div class="cls-wrap">
-          <textarea class="cls" autocomplete="off" spellcheck="false" rows="3"></textarea>
-          <div class="suggest" hidden></div>
+        <label>class <em style="font-family:system-ui,sans-serif;text-transform:none;letter-spacing:0;opacity:.5;font-style:normal">— Space/Enter to add · Backspace to remove</em></label>
+        <div class="chip-input">
+          <input type="text" class="cls" autocomplete="off" spellcheck="false" placeholder="add class..." />
         </div>
+        <div class="suggest" hidden></div>
         <div class="src"></div>
         <div class="actions">
-          <button class="apply">Apply</button>
           <button class="undo secondary">Undo last</button>
         </div>
         <div class="toast"></div>
@@ -197,10 +203,10 @@
   const badge = root.querySelector(".badge");
   const panel = root.querySelector(".panel");
   const tagLabel = root.querySelector(".tag");
+  const chipInput = root.querySelector(".chip-input");
   const clsInput = root.querySelector(".cls");
   const suggestBox = root.querySelector(".suggest");
   const srcEl = root.querySelector(".src");
-  const applyBtn = root.querySelector(".apply");
   const undoBtn = root.querySelector(".undo");
   const closeBtn = root.querySelector(".close");
   const toast = root.querySelector(".toast");
@@ -209,6 +215,7 @@
   let hoverPinned = false;
   let activeSuggestIndex = -1;
   let currentMatches = [];
+  let chips = [];
 
   const notify = (msg, err = false) => {
     toast.textContent = msg;
@@ -241,14 +248,9 @@
   const hideHighlight = () => { hi.hidden = true; badge.hidden = true; };
 
   // -- Tailwind suggest ---------------------------------------------------
-  const currentWord = () => {
-    const val = clsInput.value;
-    const pos = clsInput.selectionStart ?? val.length;
-    const start = val.lastIndexOf(" ", pos - 1) + 1;
-    let end = val.indexOf(" ", pos);
-    if (end === -1) end = val.length;
-    return { start, end, word: val.slice(start, end) };
-  };
+  // The class input holds one in-progress class at a time; chips hold the
+  // committed classes. So the "current word" is simply the whole input value.
+  const currentWord = () => ({ word: clsInput.value.trim() });
 
   // Map a Tailwind utility to its tailwindcss.com/docs slug.
   // Longer/more specific patterns come first.
@@ -330,7 +332,9 @@
   const renderSuggest = () => {
     const { word } = currentWord();
     if (!word || word.length < 1) { suggestBox.hidden = true; return; }
-    currentMatches = TW_CLASSES.filter((c) => c.startsWith(word)).slice(0, 30);
+    // Exclude classes already committed as chips so the user sees only new options.
+    const existing = new Set(chips);
+    currentMatches = TW_CLASSES.filter((c) => c.startsWith(word) && !existing.has(c)).slice(0, 30);
     if (!currentMatches.length) { suggestBox.hidden = true; return; }
     activeSuggestIndex = 0;
     suggestBox.innerHTML = currentMatches
@@ -343,10 +347,10 @@
       })
       .join("");
     suggestBox.hidden = false;
-    // Position the dropdown in viewport coordinates so it can never be
-    // clipped by an ancestor's overflow. Flip above the textarea when
-    // there is not enough room below.
-    const r = clsInput.getBoundingClientRect();
+    // Anchor to the whole chip-input row so the dropdown spans the full
+    // editable area (visually consistent whether the user is at the start
+    // or many chips deep).
+    const r = chipInput.getBoundingClientRect();
     const boxH = Math.min(240, currentMatches.length * 28 + 6);
     const spaceBelow = window.innerHeight - r.bottom;
     const spaceAbove = r.top;
@@ -359,18 +363,98 @@
     }
   };
 
+  // -- Chip management ----------------------------------------------------
+  const renderChips = () => {
+    // Clear existing chip nodes (keep the input at the end).
+    chipInput.querySelectorAll(".chip").forEach((c) => c.remove());
+    for (const cls of chips) {
+      const url = docUrl(cls);
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      chip.dataset.cls = cls;
+      const docHtml = url
+        ? `<a class="doc" href="${url}" target="_blank" rel="noopener" title="Tailwind docs">↗</a>`
+        : "";
+      chip.innerHTML = `<span class="name">${cls}</span>${docHtml}<button class="x" title="Remove">×</button>`;
+      chipInput.insertBefore(chip, clsInput);
+    }
+  };
+
+  const flashDupe = (cls) => {
+    const el = [...chipInput.querySelectorAll(".chip")].find((c) => c.dataset.cls === cls);
+    if (!el) return;
+    el.classList.add("dupe");
+    setTimeout(() => el.classList.remove("dupe"), 260);
+  };
+
+  const commitChip = (raw) => {
+    // Accept space/comma-separated tokens in one paste too.
+    const parts = raw.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
+    let added = false;
+    for (const cls of parts) {
+      if (!/^[A-Za-z0-9._:\-\/[\]]+$/.test(cls)) continue; // guard against garbage
+      if (chips.includes(cls)) { flashDupe(cls); continue; }
+      chips.push(cls);
+      added = true;
+    }
+    clsInput.value = "";
+    suggestBox.hidden = true;
+    renderChips();
+    if (added) autoApply();
+  };
+
+  const removeChipAt = (idx) => {
+    if (idx < 0 || idx >= chips.length) return;
+    chips.splice(idx, 1);
+    renderChips();
+    autoApply();
+  };
+
+  const editChipAt = (idx) => {
+    if (idx < 0 || idx >= chips.length) return;
+    const cls = chips[idx];
+    chips.splice(idx, 1);
+    renderChips();
+    clsInput.value = cls;
+    clsInput.focus();
+    renderSuggest();
+  };
+
   const applySuggest = (idx) => {
     if (idx < 0 || idx >= currentMatches.length) return;
-    const chosen = currentMatches[idx];
-    const { start, end } = currentWord();
-    const before = clsInput.value.slice(0, start);
-    const after = clsInput.value.slice(end);
-    const joined = `${before}${chosen}${after.startsWith(" ") || after === "" ? after : " " + after}`;
-    clsInput.value = joined;
-    const caret = (before + chosen).length;
-    clsInput.setSelectionRange(caret, caret);
-    suggestBox.hidden = true;
-    clsInput.focus();
+    commitChip(currentMatches[idx]);
+  };
+
+  // -- Auto-apply to source ----------------------------------------------
+  let applyTimer = null;
+  const autoApply = () => {
+    if (!selected) return;
+    if (applyTimer) clearTimeout(applyTimer);
+    applyTimer = setTimeout(async () => {
+      const zdId = selected.dataset.zdId;
+      const cls = chips.join(" ");
+      try {
+        const res = await fetch("/__djust_designer__/edit/class", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ zd_id: zdId, class: cls }),
+        });
+        if (res.ok) {
+          selected.setAttribute("class", cls);
+          notify("Saved");
+          fetch("/__djust_designer__/select", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ zd_id: zdId, class: cls }),
+          }).catch(() => {});
+        } else {
+          const body = await res.text().catch(() => "");
+          notify(`Save failed (${res.status}) ${body}`.trim(), true);
+        }
+      } catch (err) {
+        notify(`Save error: ${err.message || err}`, true);
+      }
+    }, 120);
   };
 
   clsInput.addEventListener("input", renderSuggest);
@@ -388,7 +472,7 @@
         if (el) { el.classList.add("active"); el.scrollIntoView({ block: "nearest" }); }
         return;
       }
-      if (e.key === "Tab" || (e.key === "Enter" && !e.shiftKey)) {
+      if (e.key === "Tab" || e.key === "Enter") {
         if (activeSuggestIndex >= 0) {
           e.preventDefault();
           applySuggest(activeSuggestIndex);
@@ -401,13 +485,17 @@
         return;
       }
     }
-    // No open suggestion: Enter (without Shift) submits, Cmd/Ctrl+Enter also submits.
-    if (e.key === "Enter" && !e.shiftKey) {
+    // Chip commit / removal keys.
+    if ((e.key === " " || e.key === "," || e.key === "Enter") && clsInput.value.trim()) {
       e.preventDefault();
-      applyBtn.click();
-    } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      commitChip(clsInput.value);
+      return;
+    }
+    if (e.key === "Backspace" && !clsInput.value && chips.length) {
       e.preventDefault();
-      applyBtn.click();
+      // Alt/Cmd+Backspace edits the last chip; plain Backspace deletes it.
+      if (e.altKey || e.metaKey) editChipAt(chips.length - 1);
+      else removeChipAt(chips.length - 1);
     }
   });
   suggestBox.addEventListener("mousedown", (e) => {
@@ -418,6 +506,18 @@
     if (!el) return;
     e.preventDefault();
     applySuggest(Number(el.dataset.i));
+  });
+
+  // Click on × removes; click on chip name puts it in the editor;
+  // click on .doc opens Tailwind docs (default anchor behaviour).
+  chipInput.addEventListener("click", (e) => {
+    if (e.target === clsInput) return;
+    if (e.target.closest(".doc")) return;
+    const chip = e.target.closest(".chip");
+    if (!chip) { clsInput.focus(); return; }
+    const idx = [...chipInput.querySelectorAll(".chip")].indexOf(chip);
+    if (e.target.closest(".x")) removeChipAt(idx);
+    else editChipAt(idx);
   });
 
   // -- Global hover/click -------------------------------------------------
@@ -447,50 +547,21 @@
       if (res.ok) entry = await res.json();
     } catch (_) {}
 
-    clsInput.value = el.getAttribute("class") || "";
+    chips = (el.getAttribute("class") || "").split(/\s+/).filter(Boolean);
+    renderChips();
+    clsInput.value = "";
     tagLabel.innerHTML = `&lt;${el.tagName.toLowerCase()}&gt;<em>${zdId}</em>`;
     srcEl.textContent = entry.error ? "(source unknown)" : `${entry.file}:${entry.line}`;
     panel.hidden = false;
     clsInput.focus();
-    clsInput.setSelectionRange(clsInput.value.length, clsInput.value.length);
 
     // Mirror selection to the server so an MCP client can see it.
     fetch("/__djust_designer__/select", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ zd_id: zdId, class: clsInput.value }),
+      body: JSON.stringify({ zd_id: zdId, class: chips.join(" ") }),
     }).catch(() => {});
   }, true);
-
-  applyBtn.addEventListener("click", async () => {
-    if (!selected) return;
-    const zdId = selected.dataset.zdId;
-    // Collapse whitespace (newlines from Shift+Enter, tabs, doubled spaces) so
-    // the file gets a single-line class attribute.
-    const cls = clsInput.value.replace(/\s+/g, " ").trim();
-    clsInput.value = cls;
-    try {
-      const res = await fetch("/__djust_designer__/edit/class", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ zd_id: zdId, class: cls }),
-      });
-      if (res.ok) {
-        selected.setAttribute("class", cls);
-        notify("Applied");
-        fetch("/__djust_designer__/select", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ zd_id: zdId, class: cls }),
-        }).catch(() => {});
-      } else {
-        const body = await res.text().catch(() => "");
-        notify(`Apply failed (${res.status}) ${body}`.trim(), true);
-      }
-    } catch (err) {
-      notify(`Apply error: ${err.message || err}`, true);
-    }
-  });
 
   undoBtn.addEventListener("click", async () => {
     try {
