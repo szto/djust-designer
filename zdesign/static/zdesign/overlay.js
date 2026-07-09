@@ -146,17 +146,17 @@
       :host { all: initial; font: 13px/1.4 system-ui, sans-serif; color: #0f172a; }
       .hi { position:absolute; outline:2px solid #6366f1; background:rgba(99,102,241,.08); pointer-events:none; transition:all .05s ease-out; }
       .badge { position:absolute; background:#4338ca; color:#fff; padding:2px 6px; border-radius:4px; font-size:11px; pointer-events:none; }
-      .panel { position:fixed; right:16px; bottom:16px; width:360px; background:#fff; border:1px solid #cbd5e1; border-radius:10px; box-shadow:0 10px 30px rgba(15,23,42,.2); pointer-events:auto; overflow:visible; }
-      .panel header { padding:10px 12px; background:#0f172a; color:#fff; display:flex; justify-content:space-between; align-items:center; border-radius:10px 10px 0 0; }
+      .panel { position:fixed; right:16px; bottom:16px; width:min(560px, calc(100vw - 32px)); background:#fff; border:1px solid #cbd5e1; border-radius:10px; box-shadow:0 10px 30px rgba(15,23,42,.2); pointer-events:auto; overflow:visible; resize:both; min-width:360px; max-width:calc(100vw - 32px); }
+      .panel header { padding:10px 12px; background:#0f172a; color:#fff; display:flex; justify-content:space-between; align-items:center; border-radius:10px 10px 0 0; cursor:move; user-select:none; }
       .panel header .tag { font-family:ui-monospace,monospace; font-size:13px; }
       .panel header .tag em { opacity:.55; font-style:normal; margin-left:8px; font-size:11px; }
-      .panel header .close { cursor:pointer; opacity:.7; font-size:16px; line-height:1; }
+      .panel header .close { cursor:pointer; opacity:.7; font-size:16px; line-height:1; padding:0 4px; }
       .panel .body { padding:12px; position:relative; }
       .panel label { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#64748b; margin-bottom:4px; }
       .panel .cls-wrap { position:relative; }
-      .panel input { width:100%; box-sizing:border-box; padding:8px; border:1px solid #cbd5e1; border-radius:6px; font-family:ui-monospace,monospace; font-size:12px; }
-      .panel input:focus { outline:2px solid #6366f1; outline-offset:-1px; }
-      .panel .suggest { position:absolute; left:0; right:0; top:100%; margin-top:2px; background:#fff; border:1px solid #cbd5e1; border-radius:6px; box-shadow:0 6px 16px rgba(15,23,42,.15); max-height:220px; overflow-y:auto; z-index:10; }
+      .panel textarea.cls { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-family:ui-monospace,monospace; font-size:12px; line-height:1.55; min-height:64px; max-height:280px; resize:vertical; overflow-y:auto; white-space:pre-wrap; word-break:break-word; }
+      .panel textarea.cls:focus { outline:2px solid #6366f1; outline-offset:-1px; }
+      .panel .suggest { position:absolute; left:0; right:0; top:100%; margin-top:2px; background:#fff; border:1px solid #cbd5e1; border-radius:6px; box-shadow:0 6px 16px rgba(15,23,42,.15); max-height:240px; overflow-y:auto; z-index:10; }
       .panel .sug { padding:6px 10px; font-family:ui-monospace,monospace; font-size:12px; cursor:pointer; }
       .panel .sug.active, .panel .sug:hover { background:#eef2ff; color:#4338ca; }
       .panel .src { font-family:ui-monospace,monospace; font-size:11px; color:#334155; margin-top:8px; word-break:break-all; }
@@ -175,9 +175,9 @@
         <span class="close">×</span>
       </header>
       <div class="body">
-        <label>class</label>
+        <label>class <em style="font-family:ui-monospace,monospace;text-transform:none;letter-spacing:0;opacity:.5;font-style:normal">— Enter to apply · Shift+Enter for newline</em></label>
         <div class="cls-wrap">
-          <input type="text" class="cls" autocomplete="off" spellcheck="false" />
+          <textarea class="cls" autocomplete="off" spellcheck="false" rows="3"></textarea>
           <div class="suggest" hidden></div>
         </div>
         <div class="src"></div>
@@ -277,18 +277,37 @@
   clsInput.addEventListener("focus", renderSuggest);
   clsInput.addEventListener("blur", () => setTimeout(() => (suggestBox.hidden = true), 120));
   clsInput.addEventListener("keydown", (e) => {
-    if (suggestBox.hidden) return;
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    if (!suggestBox.hidden) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const dir = e.key === "ArrowDown" ? 1 : -1;
+        activeSuggestIndex =
+          (activeSuggestIndex + dir + currentMatches.length) % currentMatches.length;
+        for (const el of suggestBox.querySelectorAll(".sug")) el.classList.remove("active");
+        const el = suggestBox.querySelector(`.sug[data-i="${activeSuggestIndex}"]`);
+        if (el) { el.classList.add("active"); el.scrollIntoView({ block: "nearest" }); }
+        return;
+      }
+      if (e.key === "Tab" || (e.key === "Enter" && !e.shiftKey)) {
+        if (activeSuggestIndex >= 0) {
+          e.preventDefault();
+          applySuggest(activeSuggestIndex);
+          return;
+        }
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        suggestBox.hidden = true;
+        return;
+      }
+    }
+    // No open suggestion: Enter (without Shift) submits, Cmd/Ctrl+Enter also submits.
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      const dir = e.key === "ArrowDown" ? 1 : -1;
-      activeSuggestIndex = (activeSuggestIndex + dir + currentMatches.length) % currentMatches.length;
-      for (const el of suggestBox.querySelectorAll(".sug")) el.classList.remove("active");
-      const el = suggestBox.querySelector(`.sug[data-i="${activeSuggestIndex}"]`);
-      if (el) { el.classList.add("active"); el.scrollIntoView({ block: "nearest" }); }
-    } else if (e.key === "Enter" || e.key === "Tab") {
-      if (activeSuggestIndex >= 0) { e.preventDefault(); applySuggest(activeSuggestIndex); }
-    } else if (e.key === "Escape") {
-      suggestBox.hidden = true;
+      applyBtn.click();
+    } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      applyBtn.click();
     }
   });
   suggestBox.addEventListener("mousedown", (e) => {
@@ -343,7 +362,10 @@
   applyBtn.addEventListener("click", async () => {
     if (!selected) return;
     const zdId = selected.dataset.zdId;
-    const cls = clsInput.value;
+    // Collapse whitespace (newlines from Shift+Enter, tabs, doubled spaces) so
+    // the file gets a single-line class attribute.
+    const cls = clsInput.value.replace(/\s+/g, " ").trim();
+    clsInput.value = cls;
     try {
       const res = await fetch("/__zdesign__/edit/class", {
         method: "POST",
@@ -383,4 +405,32 @@
     hideHighlight();
     selected = null;
   });
+
+  // Drag the panel by its header.
+  (() => {
+    const header = root.querySelector(".panel header");
+    let dragging = false;
+    let dx = 0, dy = 0;
+    header.addEventListener("mousedown", (e) => {
+      if (e.target === closeBtn) return;
+      const rect = panel.getBoundingClientRect();
+      dragging = true;
+      dx = e.clientX - rect.left;
+      dy = e.clientY - rect.top;
+      panel.style.right = "auto";
+      panel.style.bottom = "auto";
+      panel.style.left = rect.left + "px";
+      panel.style.top = rect.top + "px";
+      e.preventDefault();
+    });
+    document.addEventListener("mousemove", (e) => {
+      if (!dragging) return;
+      const w = panel.offsetWidth, h = panel.offsetHeight;
+      const x = Math.max(0, Math.min(window.innerWidth - w, e.clientX - dx));
+      const y = Math.max(0, Math.min(window.innerHeight - h, e.clientY - dy));
+      panel.style.left = x + "px";
+      panel.style.top = y + "px";
+    });
+    document.addEventListener("mouseup", () => { dragging = false; });
+  })();
 })();
