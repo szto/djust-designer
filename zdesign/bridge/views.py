@@ -7,6 +7,7 @@ whitelist. Takes a backup before every write so `undo` can restore.
 from __future__ import annotations
 
 import json
+import os
 
 from django.conf import settings
 from django.http import HttpResponseBadRequest, JsonResponse
@@ -24,6 +25,13 @@ def _template_roots() -> list[str]:
     for tpl in getattr(settings, "TEMPLATES", []):
         for d in tpl.get("DIRS", []) or []:
             roots.append(str(d))
+        if tpl.get("APP_DIRS"):
+            from django.apps import apps
+
+            for app in apps.get_app_configs():
+                app_tpl = os.path.join(app.path, "templates")
+                if os.path.isdir(app_tpl):
+                    roots.append(app_tpl)
     return roots or [str(getattr(settings, "BASE_DIR", "."))]
 
 

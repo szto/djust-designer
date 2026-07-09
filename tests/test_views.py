@@ -1,4 +1,5 @@
 import json
+import os
 
 import pytest
 from django.template.loader import get_template
@@ -105,3 +106,41 @@ def test_edit_class_rejects_html_injection(tmp_path, settings):
     assert r.status_code == 400
     # File must be untouched.
     assert src_file.read_text() == '<div class="p-2">x</div>\n'
+
+
+@pytest.mark.django_db
+def test_edit_class_allows_app_dirs_templates(tmp_path, settings):
+    """When APP_DIRS is True, files under installed app template dirs are editable."""
+    from django.apps import apps
+
+    zdesign_app = apps.get_app_config("zdesign")
+    app_tpl_dir = os.path.join(zdesign_app.path, "templates")
+    os.makedirs(app_tpl_dir, exist_ok=True)
+    fake_tpl = os.path.join(app_tpl_dir, "_zd_test.html")
+    try:
+        with open(fake_tpl, "w") as f:
+            f.write('<div class="p-2">x</div>\n')
+
+        settings.BASE_DIR = tmp_path
+        settings.TEMPLATES = [
+            {
+                **settings.TEMPLATES[0],
+                "DIRS": [],
+                "APP_DIRS": True,
+            }
+        ]
+        registry.reset()
+        registry.update({"zd1": {"file": fake_tpl, "line": 1, "col": 1, "tag": "div"}})
+
+        c = Client()
+        r = c.post(
+            "/__zdesign__/edit/class",
+            data=json.dumps({"zd_id": "zd1", "class": "p-8"}),
+            content_type="application/json",
+        )
+        assert r.status_code == 200
+        with open(fake_tpl) as f:
+            assert f.read() == '<div class="p-8">x</div>\n'
+    finally:
+        if os.path.exists(fake_tpl):
+            os.remove(fake_tpl)

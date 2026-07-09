@@ -36,6 +36,25 @@ TEMPLATES = [{
 urlpatterns += [path("", include("zdesign.urls"))]
 ```
 
+### Using `APP_DIRS = True`
+
+If your project relies on per-app `templates/` directories, use `InstrumentedAppDirsLoader` instead (or in addition to) the filesystem loader:
+
+```python
+TEMPLATES = [{
+    "BACKEND": "django.template.backends.django.DjangoTemplates",
+    "DIRS": [BASE_DIR / "templates"],
+    "APP_DIRS": False,
+    "OPTIONS": {"loaders": [
+        ("zdesign.instrument.loader.InstrumentedFilesystemLoader",
+         [str(BASE_DIR / "templates")]),
+        "zdesign.instrument.loader.InstrumentedAppDirsLoader",
+    ]},
+}]
+```
+
+Every template — whether from `DIRS` or an installed app — is edit-eligible.
+
 ## Try the demo
 
 ````
