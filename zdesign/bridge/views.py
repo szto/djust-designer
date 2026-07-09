@@ -19,6 +19,10 @@ from zdesign.edit.paths import resolve_within
 from zdesign.edit.snapshot import Backups
 from zdesign.instrument.registry import registry
 
+# Most-recent element the designer clicked in the overlay. The MCP server
+# reads this so Claude Code can act on the current selection.
+_current_selection: dict | None = None
+
 
 def _template_roots() -> list[str]:
     roots: list[str] = []
@@ -90,3 +94,37 @@ def undo(request):
         return g
     restored = Backups(str(settings.BASE_DIR)).undo_last()
     return JsonResponse({"restored": restored})
+
+
+@csrf_exempt
+@require_POST
+def select(request):
+    """Overlay-side: record the element the designer just clicked."""
+    if (g := _guard(request)) is not None:
+        return g
+    try:
+        data = json.loads(request.body or b"{}")
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest("invalid json")
+    zd_id = data.get("zd_id", "")
+    entry = registry.get(zd_id)
+    if not entry:
+        return JsonResponse({"error": "unknown id"}, status=404)
+    global _current_selection
+    _current_selection = {
+        "zd_id": zd_id,
+        "class": data.get("class", ""),
+        **entry,
+    }
+    return JsonResponse({"ok": True})
+
+
+@csrf_exempt
+@require_POST
+def selection(request):
+    """MCP-side: return the most recent overlay selection, if any."""
+    if (g := _guard(request)) is not None:
+        return g
+    if not _current_selection:
+        return JsonResponse({"error": "no selection"}, status=404)
+    return JsonResponse(_current_selection)

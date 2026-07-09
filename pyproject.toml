@@ -16,6 +16,12 @@ dev = [
     "ruff>=0.6",
     "ty>=0.0.18",
 ]
+mcp = [
+    "mcp>=1.0",
+]
+
+[project.scripts]
+zdesign-mcp = "zdesign.mcp:main"
 
 [tool.setuptools.packages.find]
 include = ["zdesign*"]
@@ -53,4 +59,4 @@ indent-style = "space"
 
 # --- ty ------------------------------------------------------------------
 [tool.ty.analysis]
-replace-imports-with-any = ["django.**"]
+replace-imports-with-any = ["django.**", "mcp.**"]

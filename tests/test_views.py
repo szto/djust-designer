@@ -109,6 +109,40 @@ def test_edit_class_rejects_html_injection(tmp_path, settings):
 
 
 @pytest.mark.django_db
+def test_select_stores_and_selection_returns_current():
+    registry.reset()
+    registry.update({"zd1": {"file": "x", "line": 3, "col": 5, "tag": "button"}})
+
+    c = Client()
+    r = c.post(
+        "/__zdesign__/select",
+        data=json.dumps({"zd_id": "zd1", "class": "p-2 bg-indigo-500"}),
+        content_type="application/json",
+    )
+    assert r.status_code == 200
+
+    r = c.post("/__zdesign__/selection", content_type="application/json")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["zd_id"] == "zd1"
+    assert body["tag"] == "button"
+    assert body["line"] == 3
+    assert body["class"] == "p-2 bg-indigo-500"
+
+
+@pytest.mark.django_db
+def test_select_404_for_unknown_id():
+    registry.reset()
+    c = Client()
+    r = c.post(
+        "/__zdesign__/select",
+        data=json.dumps({"zd_id": "nope"}),
+        content_type="application/json",
+    )
+    assert r.status_code == 404
+
+
+@pytest.mark.django_db
 def test_edit_class_allows_app_dirs_templates(tmp_path, settings):
     """When APP_DIRS is True, files under installed app template dirs are editable."""
     from django.apps import apps

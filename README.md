@@ -65,6 +65,42 @@ cd demo && python manage.py runserver 8000
 Hover → highlight. Click → panel. Edit class → Apply → source rewritten → hot-reloaded.
 Undo → previous state.
 
+### Panel niceties
+
+- **Tailwind autocomplete** — the class input suggests ~1,600 common Tailwind
+  utilities as you type. Arrow keys navigate, Enter/Tab inserts.
+- **Tag label** — the panel header shows the selected element's tag name
+  (e.g. `<button>`) so you always know what you're editing.
+- **Toast** — Apply/Undo produce a small feedback toast so failures are visible.
+
+## Claude Code (MCP)
+
+The overlay mirrors the designer's current selection to the server so an MCP
+client can act on it. Install and register:
+
+```bash
+pip install -e '.[mcp]'
+claude mcp add zdesign python -m zdesign.mcp
+```
+
+Then, with the demo (or any zdesign-wired app) running, ask Claude Code:
+
+> "Restyle whatever I just clicked to be rounder with a dark background."
+
+Claude Code calls the MCP tools:
+
+- `get_current_selection()` — what the designer just clicked (zd_id, file, line, tag, class)
+- `resolve_id(zd_id)` — source location for any `data-zd-id` visible in the DOM
+- `edit_class(zd_id, new_class)` — rewrite the class attribute (backup-safe)
+- `undo_last()` — restore the most recent snapshot
+
+If the app is on a non-default port, set `ZDESIGN_URL` or pass `--url` when
+registering:
+
+```bash
+claude mcp add zdesign -- python -m zdesign.mcp --url http://127.0.0.1:9000
+```
+
 ## Design docs
 
 - Design: `docs/superpowers/specs/2026-07-09-zdesign-design.md`
