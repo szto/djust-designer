@@ -6,7 +6,15 @@
 
 **Architecture:** Instrumenter wraps the Django template loader to inject `data-zd-id` into every opening tag and build an in-memory `{id → file:line:col:tag}` sourcemap (dev-only, `DEBUG=True`). A middleware auto-injects the overlay JS/CSS into every HTML response. A small set of JSON views resolves a `zd_id` to source location and applies class edits with a backup-based undo. The client overlay uses vanilla JS + Shadow DOM for isolation.
 
-**Tech Stack:** Python 3.12+, Django 5+, pytest + pytest-django, vanilla JS (no build step for P1). Runs on plain Django and on djust (djust reuse deferred to P2 — P1 is framework-general and validated on plain Django).
+**Tech Stack:** Python 3.12+, Django 5+, pytest + pytest-django, **ruff** (lint + format), **ty** (Astral type checker), vanilla JS (no build step for P1). Runs on plain Django and on djust (djust reuse deferred to P2 — P1 is framework-general and validated on plain Django).
+
+**Universal gate before every commit** in Tasks 1–10:
+
+```bash
+ruff check . && ruff format --check . && ty check
+```
+
+If any check fails, fix before committing. Implementer subagents must run this gate as part of every task's commit step, not just Task 0.
 
 ---
 
@@ -95,13 +103,58 @@ requires-python = ">=3.12"
 dependencies = ["Django>=5.0"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "pytest-django>=4.9"]
+dev = [
+    "pytest>=8",
+    "pytest-django>=4.9",
+    "ruff>=0.6",
+    "ty>=0.0.18",
+]
 
 [tool.setuptools.packages.find]
 include = ["zdesign*"]
 
 [tool.setuptools.package-data]
 zdesign = ["static/zdesign/*", "templates/**/*"]
+
+# --- ruff ----------------------------------------------------------------
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = [".venv", ".zdesign", "demo/demo_project/wsgi.py"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",         # pyflakes
+    "I",         # isort
+    "UP",        # pyupgrade
+    "B",         # flake8-bugbear
+    "SIM",       # flake8-simplify
+    "TID",       # flake8-tidy-imports
+    "RUF",       # ruff-specific
+]
+ignore = [
+    "E501",  # line-too-long — formatter handles it
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["B", "SIM"]  # tests can be looser
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# --- ty ------------------------------------------------------------------
+[tool.ty.src]
+include = ["zdesign"]
+
+[tool.ty.rules]
+# Django uses heavy runtime magic; keep the noise floor low for MVP.
+unresolved-attribute = "warn"
+
+[tool.ty.overrides.analysis]
+# Skip Django/third-party import types — no stubs required for MVP.
+replace-imports-with-any = ["django.**"]
 ```
 
 - [ ] **Step 2: Write `zdesign/__init__.py`**
@@ -200,11 +253,19 @@ Expected: `0.0.1`
 Run: `pytest -q`
 Expected: no tests collected, exit 0 (or exit 5 "no tests ran" — treat both as pass).
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 9: Verify lint + type checks pass on the scaffold**
+
+Run: `ruff check . && ruff format --check .`
+Expected: `All checks passed!` and no formatting drift.
+
+Run: `ty check`
+Expected: no errors (warnings are OK).
+
+- [ ] **Step 10: Commit**
 
 ```bash
 git add pyproject.toml pytest.ini zdesign/ tests/
-git commit -m "chore: scaffold zdesign package + pytest-django harness"
+git commit -m "chore: scaffold zdesign package + pytest-django + ruff + ty"
 ```
 
 ---
