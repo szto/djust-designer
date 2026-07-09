@@ -1,3 +1,1 @@
-import os
-
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "tests.settings")
+# Reserved for pytest fixtures shared across tests.
