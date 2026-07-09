@@ -146,25 +146,25 @@
       :host { all: initial; font: 13px/1.4 system-ui, sans-serif; color: #0f172a; }
       .hi { position:absolute; outline:2px solid #6366f1; background:rgba(99,102,241,.08); pointer-events:none; transition:all .05s ease-out; }
       .badge { position:absolute; background:#4338ca; color:#fff; padding:2px 6px; border-radius:4px; font-size:11px; pointer-events:none; }
-      .panel { position:fixed; right:16px; bottom:16px; width:min(560px, calc(100vw - 32px)); background:#fff; border:1px solid #cbd5e1; border-radius:10px; box-shadow:0 10px 30px rgba(15,23,42,.2); pointer-events:auto; overflow:visible; resize:both; min-width:360px; max-width:calc(100vw - 32px); }
+      .panel { position:fixed; right:16px; bottom:16px; width:min(560px, calc(100vw - 32px)); max-height:calc(100vh - 32px); background:#fff; border:1px solid #cbd5e1; border-radius:10px; box-shadow:0 10px 30px rgba(15,23,42,.2); pointer-events:auto; overflow:visible; resize:both; min-width:360px; max-width:calc(100vw - 32px); display:flex; flex-direction:column; }
       .panel header { padding:10px 12px; background:#0f172a; color:#fff; display:flex; justify-content:space-between; align-items:center; border-radius:10px 10px 0 0; cursor:move; user-select:none; }
       .panel header .tag { font-family:ui-monospace,monospace; font-size:13px; }
       .panel header .tag em { opacity:.55; font-style:normal; margin-left:8px; font-size:11px; }
       .panel header .close { cursor:pointer; opacity:.7; font-size:16px; line-height:1; padding:0 4px; }
-      .panel .body { padding:12px; position:relative; }
+      .panel .body { padding:12px; position:relative; flex:1 1 auto; min-height:0; }
       .panel label { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#64748b; margin-bottom:4px; }
       .panel .cls-wrap { position:relative; }
       .panel textarea.cls { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid #cbd5e1; border-radius:6px; font-family:ui-monospace,monospace; font-size:12px; line-height:1.55; min-height:64px; max-height:280px; resize:vertical; overflow-y:auto; white-space:pre-wrap; word-break:break-word; }
       .panel textarea.cls:focus { outline:2px solid #6366f1; outline-offset:-1px; }
-      .panel .suggest { position:absolute; left:0; right:0; top:100%; margin-top:2px; background:#fff; border:1px solid #cbd5e1; border-radius:6px; box-shadow:0 6px 16px rgba(15,23,42,.15); max-height:240px; overflow-y:auto; z-index:10; }
+      .panel .suggest { position:fixed; background:#fff; border:1px solid #cbd5e1; border-radius:6px; box-shadow:0 6px 16px rgba(15,23,42,.15); max-height:240px; overflow-y:auto; z-index:2147483647; }
       .panel .sug { padding:6px 10px; font-family:ui-monospace,monospace; font-size:12px; cursor:pointer; }
       .panel .sug.active, .panel .sug:hover { background:#eef2ff; color:#4338ca; }
-      .panel .src { font-family:ui-monospace,monospace; font-size:11px; color:#334155; margin-top:8px; word-break:break-all; }
+      .panel .src { font-family:ui-monospace,monospace; font-size:11px; color:#334155; margin-top:8px; word-break:break-all; max-height:60px; overflow-y:auto; }
       .panel .actions { display:flex; gap:8px; margin-top:10px; }
       .panel button { flex:1; padding:8px; border:0; border-radius:6px; background:#6366f1; color:#fff; cursor:pointer; font-size:13px; }
       .panel button.secondary { background:#e2e8f0; color:#0f172a; }
-      .panel .toast { position:absolute; left:12px; right:12px; bottom:-32px; padding:6px 10px; border-radius:6px; font-size:11px; color:#fff; background:#0f172a; opacity:0; transition:opacity .18s; pointer-events:none; }
-      .panel .toast.show { opacity:1; }
+      .panel .toast { margin-top:8px; padding:6px 10px; border-radius:6px; font-size:11px; color:#fff; background:#0f172a; opacity:0; max-height:0; overflow:hidden; transition:opacity .18s, max-height .18s; }
+      .panel .toast.show { opacity:1; max-height:80px; }
       .panel .toast.err { background:#dc2626; }
     </style>
     <div class="hi" hidden></div>
@@ -257,6 +257,20 @@
       .map((c, i) => `<div class="sug${i === 0 ? " active" : ""}" data-i="${i}">${c}</div>`)
       .join("");
     suggestBox.hidden = false;
+    // Position the dropdown in viewport coordinates so it can never be
+    // clipped by an ancestor's overflow. Flip above the textarea when
+    // there is not enough room below.
+    const r = clsInput.getBoundingClientRect();
+    const boxH = Math.min(240, currentMatches.length * 28 + 6);
+    const spaceBelow = window.innerHeight - r.bottom;
+    const spaceAbove = r.top;
+    suggestBox.style.left = r.left + "px";
+    suggestBox.style.width = r.width + "px";
+    if (spaceBelow < boxH + 8 && spaceAbove > spaceBelow) {
+      suggestBox.style.top = Math.max(8, r.top - boxH - 4) + "px";
+    } else {
+      suggestBox.style.top = r.bottom + 4 + "px";
+    }
   };
 
   const applySuggest = (idx) => {
