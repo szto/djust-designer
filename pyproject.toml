@@ -4,10 +4,34 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "zdesign"
-version = "0.0.1"
-description = "Visual design collaboration layer for djust (Django) — point at the page, edit the source."
+version = "0.1.0"
+description = "Visual design collaboration layer for djust / Django — point at the page, edit the source."
+readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.12"
+authors = [{ name = "gim sun", email = "obadiah26@gmail.com" }]
+keywords = ["django", "djust", "tailwind", "design", "visual-editing", "mcp", "claude"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Django :: 5.0",
+    "Framework :: Django :: 5.1",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: User Interfaces",
+]
 dependencies = ["Django>=5.0"]
+
+[project.urls]
+Homepage = "https://github.com/szto/zdesign"
+Repository = "https://github.com/szto/zdesign"
+Issues = "https://github.com/szto/zdesign/issues"
 
 [project.optional-dependencies]
 dev = [
@@ -15,9 +39,14 @@ dev = [
     "pytest-django>=4.9",
     "ruff>=0.6",
     "ty>=0.0.18",
+    "build>=1.2",
+    "twine>=5.1",
 ]
 mcp = [
     "mcp>=1.0",
+]
+djust = [
+    "djust>=0.1",
 ]
 
 [project.scripts]

@@ -1,17 +1,38 @@
 # zdesign
 
-Visual design collaboration layer for [djust](https://github.com/szto/djust) (Django) apps.
+Visual design collaboration layer for [djust](https://github.com/szto/djust) / Django apps.
 Point at any element on your running page → see its source template + line → edit its
 Tailwind classes with automatic write-back → undo with one click. No terminal, no code
-editor. P2 will add an in-app Claude chat panel.
+editor. Ships with a Claude Code MCP bridge so an AI assistant can act on whatever the
+designer just clicked.
 
 **Runs on `DEBUG=True` only.** No traces in production.
 
 ## Install
 
-````
-pip install -e path/to/zdesign
-````
+Plain Django project:
+
+```bash
+pip install zdesign
+```
+
+With Claude Code MCP bridge:
+
+```bash
+pip install 'zdesign[mcp]'
+```
+
+Targeting a [djust](https://github.com/szto/djust) app (pulls djust too):
+
+```bash
+pip install 'zdesign[djust,mcp]'
+```
+
+Local development:
+
+```bash
+pip install -e '.[dev,mcp]'
+```
 
 ## Wire it up
 
@@ -100,6 +121,26 @@ registering:
 ```bash
 claude mcp add zdesign -- python -m zdesign.mcp --url http://127.0.0.1:9000
 ```
+
+## Publishing to PyPI
+
+Sanity check first, then build and upload:
+
+```bash
+pip install -e '.[dev]'
+pytest -q && ruff check . && ruff format --check . && ty check
+rm -rf dist/
+python -m build         # produces dist/*.whl and dist/*.tar.gz
+twine check dist/*
+twine upload dist/*     # or `twine upload --repository testpypi dist/*` first
+```
+
+Version bumps live in `pyproject.toml` (`[project].version`). Tag the release
+in git before uploading (`git tag v0.1.0 && git push --tags`).
+
+## License
+
+MIT — see `LICENSE`.
 
 ## Design docs
 
