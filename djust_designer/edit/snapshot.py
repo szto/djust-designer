@@ -1,6 +1,6 @@
 """Backup-based snapshot/undo — works with or without git.
 
-Snapshots each file into `<root>/.zdesign/backups/` and appends a JSONL log.
+Snapshots each file into `<root>/.djust_designer/backups/` and appends a JSONL log.
 `undo_last` restores the newest entry and trims the log.
 """
 
@@ -14,7 +14,7 @@ import time
 
 class Backups:
     def __init__(self, root: str) -> None:
-        self.dir = os.path.join(root, ".zdesign", "backups")
+        self.dir = os.path.join(root, ".djust_designer", "backups")
         os.makedirs(self.dir, exist_ok=True)
         self.log = os.path.join(self.dir, "log.jsonl")
         self._counter = 0

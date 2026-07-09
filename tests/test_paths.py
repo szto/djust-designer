@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from zdesign.edit.paths import resolve_within
+from djust_designer.edit.paths import resolve_within
 
 
 def test_returns_realpath_when_within_root(tmp_path):

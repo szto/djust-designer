@@ -1,4 +1,4 @@
-# zdesign
+# djust-designer
 
 Visual design collaboration layer for [djust](https://github.com/szto/djust) / Django apps.
 Point at any element on your running page → see its source template + line → edit its
@@ -13,19 +13,19 @@ designer just clicked.
 Plain Django project:
 
 ```bash
-pip install zdesign
+pip install djust-designer
 ```
 
 With Claude Code MCP bridge:
 
 ```bash
-pip install 'zdesign[mcp]'
+pip install 'djust-designer[mcp]'
 ```
 
 Targeting a [djust](https://github.com/szto/djust) app (pulls djust too):
 
 ```bash
-pip install 'zdesign[djust,mcp]'
+pip install 'djust-designer[djust,mcp]'
 ```
 
 Local development:
@@ -36,17 +36,20 @@ pip install -e '.[dev,mcp]'
 
 ## Wire it up
 
+Distribution name is `djust-designer` (hyphen) on PyPI; the Python module is
+`djust_designer` (underscore) — standard Django-package convention.
+
 ```python
 # settings.py
-INSTALLED_APPS = [..., "zdesign"]
-MIDDLEWARE = ["zdesign.middleware.ZdesignMiddleware", ...]
+INSTALLED_APPS = [..., "djust_designer"]
+MIDDLEWARE = ["djust_designer.middleware.DjustDesignerMiddleware", ...]
 
 TEMPLATES = [{
     "BACKEND": "django.template.backends.django.DjangoTemplates",
     "DIRS": [BASE_DIR / "templates"],
     "APP_DIRS": False,
     "OPTIONS": {"loaders": [(
-        "zdesign.instrument.loader.InstrumentedFilesystemLoader",
+        "djust_designer.instrument.loader.InstrumentedFilesystemLoader",
         [str(BASE_DIR / "templates")],
     )]},
 }]
@@ -54,7 +57,7 @@ TEMPLATES = [{
 
 ```python
 # urls.py
-urlpatterns += [path("", include("zdesign.urls"))]
+urlpatterns += [path("", include("djust_designer.urls"))]
 ```
 
 ### Using `APP_DIRS = True`
@@ -67,9 +70,9 @@ TEMPLATES = [{
     "DIRS": [BASE_DIR / "templates"],
     "APP_DIRS": False,
     "OPTIONS": {"loaders": [
-        ("zdesign.instrument.loader.InstrumentedFilesystemLoader",
+        ("djust_designer.instrument.loader.InstrumentedFilesystemLoader",
          [str(BASE_DIR / "templates")]),
-        "zdesign.instrument.loader.InstrumentedAppDirsLoader",
+        "djust_designer.instrument.loader.InstrumentedAppDirsLoader",
     ]},
 }]
 ```
@@ -79,8 +82,8 @@ Every template — whether from `DIRS` or an installed app — is edit-eligible.
 ## Try the demo
 
 ````
-cd demo && python manage.py runserver 8000
-# open http://localhost:8000
+cd demo && python manage.py runserver 8737
+# open http://localhost:8737
 ````
 
 Hover → highlight. Click → panel. Edit class → Apply → source rewritten → hot-reloaded.
@@ -101,10 +104,10 @@ client can act on it. Install and register:
 
 ```bash
 pip install -e '.[mcp]'
-claude mcp add zdesign python -m zdesign.mcp
+claude mcp add djust-designer python -m djust_designer.mcp
 ```
 
-Then, with the demo (or any zdesign-wired app) running, ask Claude Code:
+Then, with the demo (or any djust-designer-wired app) running, ask Claude Code:
 
 > "Restyle whatever I just clicked to be rounder with a dark background."
 
@@ -115,11 +118,11 @@ Claude Code calls the MCP tools:
 - `edit_class(zd_id, new_class)` — rewrite the class attribute (backup-safe)
 - `undo_last()` — restore the most recent snapshot
 
-If the app is on a non-default port, set `ZDESIGN_URL` or pass `--url` when
-registering:
+If the app is on a non-default port, set `DJUST_DESIGNER_URL` or pass `--url`
+when registering:
 
 ```bash
-claude mcp add zdesign -- python -m zdesign.mcp --url http://127.0.0.1:9000
+claude mcp add djust-designer -- python -m djust_designer.mcp --url http://127.0.0.1:9000
 ```
 
 ## Publishing to PyPI
@@ -144,5 +147,5 @@ MIT — see `LICENSE`.
 
 ## Design docs
 
-- Design: `docs/superpowers/specs/2026-07-09-zdesign-design.md`
-- Plan: `docs/superpowers/plans/2026-07-09-zdesign-p1-mvp.md`
+- Design: `docs/superpowers/specs/2026-07-09-djust-designer-design.md`
+- Plan: `docs/superpowers/plans/2026-07-09-djust-designer-p1-mvp.md`

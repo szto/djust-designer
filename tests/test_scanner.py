@@ -1,4 +1,4 @@
-from zdesign.instrument.scanner import instrument_html
+from djust_designer.instrument.scanner import instrument_html
 
 
 def test_injects_id_and_records_position():

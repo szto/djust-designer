@@ -1,4 +1,4 @@
-from zdesign.edit.snapshot import Backups
+from djust_designer.edit.snapshot import Backups
 
 
 def test_snapshot_then_undo_restores_original(tmp_path):

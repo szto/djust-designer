@@ -4,7 +4,7 @@ __pycache__/
 .pytest_cache/
 .DS_Store
 .superpowers/
-.zdesign/
+.djust_designer/
 *.egg-info/
 dist/
 build/

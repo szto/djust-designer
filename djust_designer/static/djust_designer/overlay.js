@@ -1,4 +1,4 @@
-/* zdesign overlay — vanilla JS + Shadow DOM.
+/* djust_designer overlay — vanilla JS + Shadow DOM.
  *
  * Hover to highlight any element carrying data-zd-id; click to open the edit
  * panel; edit its class attribute with Tailwind autocomplete and POST the
@@ -6,8 +6,8 @@
  * server so a Claude Code MCP client can see what the designer picked.
  */
 (() => {
-  if (window.__zdesign_loaded) return;
-  window.__zdesign_loaded = true;
+  if (window.__djust_designer_loaded) return;
+  window.__djust_designer_loaded = true;
 
   // ============================================================
   // Tailwind utility catalogue (built at load, ~1600 classes).
@@ -136,7 +136,7 @@
   // Shadow DOM host — no style leakage into the underlying page.
   // ============================================================
   const host = document.createElement("div");
-  host.id = "zdesign-root";
+  host.id = "djust_designer-root";
   host.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:2147483647";
   document.documentElement.appendChild(host);
   const root = host.attachShadow({ mode: "open" });
@@ -171,7 +171,7 @@
     <div class="badge" hidden></div>
     <div class="panel" hidden>
       <header>
-        <span class="tag">zdesign</span>
+        <span class="tag">djust_designer</span>
         <span class="close">×</span>
       </header>
       <div class="body">
@@ -350,7 +350,7 @@
     const zdId = el.dataset.zdId;
     let entry = { error: true };
     try {
-      const res = await fetch("/__zdesign__/resolve", {
+      const res = await fetch("/__djust_designer__/resolve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ zd_id: zdId }),
@@ -366,7 +366,7 @@
     clsInput.setSelectionRange(clsInput.value.length, clsInput.value.length);
 
     // Mirror selection to the server so an MCP client can see it.
-    fetch("/__zdesign__/select", {
+    fetch("/__djust_designer__/select", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ zd_id: zdId, class: clsInput.value }),
@@ -381,7 +381,7 @@
     const cls = clsInput.value.replace(/\s+/g, " ").trim();
     clsInput.value = cls;
     try {
-      const res = await fetch("/__zdesign__/edit/class", {
+      const res = await fetch("/__djust_designer__/edit/class", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ zd_id: zdId, class: cls }),
@@ -389,7 +389,7 @@
       if (res.ok) {
         selected.setAttribute("class", cls);
         notify("Applied");
-        fetch("/__zdesign__/select", {
+        fetch("/__djust_designer__/select", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ zd_id: zdId, class: cls }),
@@ -405,7 +405,7 @@
 
   undoBtn.addEventListener("click", async () => {
     try {
-      const res = await fetch("/__zdesign__/undo", { method: "POST" });
+      const res = await fetch("/__djust_designer__/undo", { method: "POST" });
       if (res.ok) notify("Undone — reload to see");
       else notify(`Undo failed (${res.status})`, true);
     } catch (err) {

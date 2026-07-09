@@ -9,6 +9,6 @@ def home(request):
 
 urlpatterns = [
     path("", home),
-    path("", include("zdesign.urls")),
+    path("", include("djust_designer.urls")),
 ]
 urlpatterns += staticfiles_urlpatterns()

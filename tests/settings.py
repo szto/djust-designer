@@ -9,14 +9,14 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.auth",
     "django.contrib.staticfiles",
-    "zdesign",
+    "djust_designer",
 ]
 
 MIDDLEWARE = [
-    "zdesign.middleware.ZdesignMiddleware",
+    "djust_designer.middleware.DjustDesignerMiddleware",
 ]
 
-ROOT_URLCONF = "zdesign.urls"
+ROOT_URLCONF = "djust_designer.urls"
 
 TEMPLATES = [
     {
@@ -26,7 +26,7 @@ TEMPLATES = [
         "OPTIONS": {
             "loaders": [
                 (
-                    "zdesign.instrument.loader.InstrumentedFilesystemLoader",
+                    "djust_designer.instrument.loader.InstrumentedFilesystemLoader",
                     [str(BASE_DIR / "tests" / "fixtures" / "templates")],
                 ),
             ],

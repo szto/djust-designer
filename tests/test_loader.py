@@ -1,7 +1,7 @@
 import pytest
 from django.template.loader import get_template
 
-from zdesign.instrument.registry import registry
+from djust_designer.instrument.registry import registry
 
 
 @pytest.mark.django_db

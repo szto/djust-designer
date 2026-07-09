@@ -9,12 +9,12 @@ from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
 
 _INJECT = (
-    '<link rel="stylesheet" href="/static/zdesign/overlay.css">'
-    '<script src="/static/zdesign/overlay.js" defer></script>'
+    '<link rel="stylesheet" href="/static/djust_designer/overlay.css">'
+    '<script src="/static/djust_designer/overlay.js" defer></script>'
 )
 
 
-class ZdesignMiddleware(MiddlewareMixin):
+class DjustDesignerMiddleware(MiddlewareMixin):
     def process_response(self, request, response):
         if not getattr(settings, "DEBUG", False):
             return response
@@ -24,7 +24,7 @@ class ZdesignMiddleware(MiddlewareMixin):
         if "text/html" not in ct:
             return response
         content = response.content.decode(response.charset)
-        if "zdesign/overlay.js" in content:
+        if "djust_designer/overlay.js" in content:
             return response
         if "</body>" not in content:
             return response

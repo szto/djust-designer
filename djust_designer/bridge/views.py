@@ -14,10 +14,10 @@ from django.http import HttpResponseBadRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from zdesign.edit.classedit import apply_class_change
-from zdesign.edit.paths import resolve_within
-from zdesign.edit.snapshot import Backups
-from zdesign.instrument.registry import registry
+from djust_designer.edit.classedit import apply_class_change
+from djust_designer.edit.paths import resolve_within
+from djust_designer.edit.snapshot import Backups
+from djust_designer.instrument.registry import registry
 
 # Most-recent element the designer clicked in the overlay. The MCP server
 # reads this so Claude Code can act on the current selection.

@@ -3,13 +3,13 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "zdesign"
+name = "djust-designer"
 version = "0.1.0"
 description = "Visual design collaboration layer for djust / Django — point at the page, edit the source."
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.12"
-authors = [{ name = "gim sun", email = "obadiah26@gmail.com" }]
+authors = [{ name = "szto", email = "sztolabs@gmail.com" }]
 keywords = ["django", "djust", "tailwind", "design", "visual-editing", "mcp", "claude"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -29,9 +29,9 @@ classifiers = [
 dependencies = ["Django>=5.0"]
 
 [project.urls]
-Homepage = "https://github.com/szto/zdesign"
-Repository = "https://github.com/szto/zdesign"
-Issues = "https://github.com/szto/zdesign/issues"
+Homepage = "https://github.com/szto/djust-designer"
+Repository = "https://github.com/szto/djust-designer"
+Issues = "https://github.com/szto/djust-designer/issues"
 
 [project.optional-dependencies]
 dev = [
@@ -50,19 +50,19 @@ djust = [
 ]
 
 [project.scripts]
-zdesign-mcp = "zdesign.mcp:main"
+djust-designer-mcp = "djust_designer.mcp:main"
 
 [tool.setuptools.packages.find]
-include = ["zdesign*"]
+include = ["djust_designer*"]
 
 [tool.setuptools.package-data]
-zdesign = ["static/zdesign/*", "templates/**/*"]
+djust_designer = ["static/djust_designer/*", "templates/**/*"]
 
 # --- ruff ----------------------------------------------------------------
 [tool.ruff]
 target-version = "py312"
 line-length = 100
-extend-exclude = [".venv", ".zdesign", "demo/demo_project/wsgi.py"]
+extend-exclude = [".venv", ".djust_designer", "demo/demo_project/wsgi.py"]
 
 [tool.ruff.lint]
 select = [

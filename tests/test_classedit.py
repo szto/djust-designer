@@ -1,6 +1,6 @@
 import pytest
 
-from zdesign.edit.classedit import apply_class_change
+from djust_designer.edit.classedit import apply_class_change
 
 
 def test_replaces_existing_class_double_quoted():

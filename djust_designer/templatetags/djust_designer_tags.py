@@ -1,4 +1,4 @@
-"""Optional manual injection: `{% load zdesign_tags %}{% zdesign_scripts %}`.
+"""Optional manual injection: `{% load djust_designer_tags %}{% djust_designer_scripts %}`.
 
 The middleware already auto-injects; this tag exists for users who want
 explicit placement (e.g. above a strict CSP-guarded </body>).
@@ -12,10 +12,10 @@ register = template.Library()
 
 
 @register.simple_tag
-def zdesign_scripts() -> str:
+def djust_designer_scripts() -> str:
     if not getattr(settings, "DEBUG", False):
         return ""
     return mark_safe(
-        '<link rel="stylesheet" href="/static/zdesign/overlay.css">'
-        '<script src="/static/zdesign/overlay.js" defer></script>'
+        '<link rel="stylesheet" href="/static/djust_designer/overlay.css">'
+        '<script src="/static/djust_designer/overlay.js" defer></script>'
     )

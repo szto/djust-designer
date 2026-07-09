@@ -1,4 +1,4 @@
-from zdesign.instrument.registry import SourceMapRegistry
+from djust_designer.instrument.registry import SourceMapRegistry
 
 
 def test_counter_allocates_disjoint_ranges():

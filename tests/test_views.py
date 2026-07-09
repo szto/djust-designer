@@ -5,7 +5,7 @@ import pytest
 from django.template.loader import get_template
 from django.test import Client
 
-from zdesign.instrument.registry import registry
+from djust_designer.instrument.registry import registry
 
 
 @pytest.mark.django_db
@@ -15,7 +15,7 @@ def test_resolve_returns_entry_for_known_id():
 
     c = Client()
     r = c.post(
-        "/__zdesign__/resolve",
+        "/__djust_designer__/resolve",
         data=json.dumps({"zd_id": "zd1"}),
         content_type="application/json",
     )
@@ -30,7 +30,7 @@ def test_resolve_404_for_unknown_id():
     registry.reset()
     c = Client()
     r = c.post(
-        "/__zdesign__/resolve",
+        "/__djust_designer__/resolve",
         data=json.dumps({"zd_id": "nope"}),
         content_type="application/json",
     )
@@ -63,14 +63,14 @@ def test_edit_class_rewrites_source_and_supports_undo(tmp_path, settings):
 
     c = Client()
     r = c.post(
-        "/__zdesign__/edit/class",
+        "/__djust_designer__/edit/class",
         data=json.dumps({"zd_id": "zd1", "class": "p-4"}),
         content_type="application/json",
     )
     assert r.status_code == 200
     assert src_file.read_text() == '<div class="p-4">x</div>\n'
 
-    r = c.post("/__zdesign__/undo", content_type="application/json")
+    r = c.post("/__djust_designer__/undo", content_type="application/json")
     assert r.status_code == 200
     assert src_file.read_text() == '<div class="p-2">x</div>\n'
 
@@ -81,7 +81,7 @@ def test_resolve_rejects_non_loopback():
     registry.update({"zd1": {"file": "x", "line": 1, "col": 1, "tag": "div"}})
     c = Client(REMOTE_ADDR="10.0.0.1")
     r = c.post(
-        "/__zdesign__/resolve",
+        "/__djust_designer__/resolve",
         data=json.dumps({"zd_id": "zd1"}),
         content_type="application/json",
     )
@@ -99,7 +99,7 @@ def test_edit_class_rejects_html_injection(tmp_path, settings):
 
     c = Client()
     r = c.post(
-        "/__zdesign__/edit/class",
+        "/__djust_designer__/edit/class",
         data=json.dumps({"zd_id": "zd1", "class": 'p-4"><script>x</script>'}),
         content_type="application/json",
     )
@@ -115,13 +115,13 @@ def test_select_stores_and_selection_returns_current():
 
     c = Client()
     r = c.post(
-        "/__zdesign__/select",
+        "/__djust_designer__/select",
         data=json.dumps({"zd_id": "zd1", "class": "p-2 bg-indigo-500"}),
         content_type="application/json",
     )
     assert r.status_code == 200
 
-    r = c.post("/__zdesign__/selection", content_type="application/json")
+    r = c.post("/__djust_designer__/selection", content_type="application/json")
     assert r.status_code == 200
     body = r.json()
     assert body["zd_id"] == "zd1"
@@ -135,7 +135,7 @@ def test_select_404_for_unknown_id():
     registry.reset()
     c = Client()
     r = c.post(
-        "/__zdesign__/select",
+        "/__djust_designer__/select",
         data=json.dumps({"zd_id": "nope"}),
         content_type="application/json",
     )
@@ -147,8 +147,8 @@ def test_edit_class_allows_app_dirs_templates(tmp_path, settings):
     """When APP_DIRS is True, files under installed app template dirs are editable."""
     from django.apps import apps
 
-    zdesign_app = apps.get_app_config("zdesign")
-    app_tpl_dir = os.path.join(zdesign_app.path, "templates")
+    djust_designer_app = apps.get_app_config("djust_designer")
+    app_tpl_dir = os.path.join(djust_designer_app.path, "templates")
     os.makedirs(app_tpl_dir, exist_ok=True)
     fake_tpl = os.path.join(app_tpl_dir, "_zd_test.html")
     try:
@@ -168,7 +168,7 @@ def test_edit_class_allows_app_dirs_templates(tmp_path, settings):
 
         c = Client()
         r = c.post(
-            "/__zdesign__/edit/class",
+            "/__djust_designer__/edit/class",
             data=json.dumps({"zd_id": "zd1", "class": "p-8"}),
             content_type="application/json",
         )
