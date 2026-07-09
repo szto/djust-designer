@@ -145,15 +145,9 @@ quote-style = "double"
 indent-style = "space"
 
 # --- ty ------------------------------------------------------------------
-[tool.ty.src]
-include = ["zdesign"]
-
-[tool.ty.rules]
-# Django uses heavy runtime magic; keep the noise floor low for MVP.
-unresolved-attribute = "warn"
-
 [tool.ty.overrides.analysis]
-# Skip Django/third-party import types — no stubs required for MVP.
+# Skip Django import types — no stubs required for MVP. `ty check` will
+# treat django.* as Any so we do not need django-stubs.
 replace-imports-with-any = ["django.**"]
 ```
 
