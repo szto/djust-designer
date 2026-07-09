@@ -1,5 +1,9 @@
 # djust-designer
 
+> **⚠️ Contributors:** read [`docs/HANDOFF.md`](docs/HANDOFF.md) before starting
+> new work — the scope is being reconsidered (Framer-style no-code builder
+> vs. current class editor), and the `feat/regions` branch is local-only.
+
 Visual design collaboration layer for [djust](https://github.com/szto/djust) / Django apps.
 Point at any element on your running page → see its source template + line → edit its
 Tailwind classes with automatic write-back → undo with one click. No terminal, no code
