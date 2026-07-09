@@ -44,3 +44,29 @@ def test_col_is_one_based_from_line_start():
     src = "  <div>x</div>"
     _, smap = instrument_html(src, "t.html", start=1)
     assert smap["zd1"]["col"] == 3
+
+
+def test_django_var_in_attribute_is_instrumented():
+    src = '<div class="{{ cls }}">x</div>'
+    out, smap = instrument_html(src, "t.html", start=1)
+    assert out == '<div data-zd-id="zd1" class="{{ cls }}">x</div>'
+    assert smap["zd1"]["tag"] == "div"
+
+
+def test_multi_line_opening_tag_is_instrumented_at_start_line():
+    src = '<div\n  class="c"\n  id="i">x</div>'
+    out, smap = instrument_html(src, "t.html", start=1)
+    assert out.startswith('<div data-zd-id="zd1"\n  class="c"\n  id="i">')
+    assert smap["zd1"]["line"] == 1
+    assert smap["zd1"]["col"] == 1
+    assert smap["zd1"]["tag"] == "div"
+
+
+def test_ignores_tags_inside_html_comments():
+    src = '<div>ok</div>\n<!-- <p class="x">nope</p> -->\n<span>ok2</span>'
+    out, smap = instrument_html(src, "t.html", start=1)
+    # div and span get ids; p inside the comment does not.
+    tags = sorted(entry["tag"] for entry in smap.values())
+    assert tags == ["div", "span"]
+    # Comment content untouched.
+    assert '<p class="x">nope</p>' in out
